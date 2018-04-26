@@ -47,13 +47,20 @@ def read_file(f, task, subject):
 dataArray = []
 fpath ="/home/sneha/UMASS/UBICOMP/project/data/raw_data/"
 npyfilespath = "/home/sneha/UMASS/UBICOMP/project/data/raw_data/*.npy"   
+fpathnew ="/home/sneha/UMASS/UBICOMP/project/data/pre_processed/"
 #os.chdir(npyfilespath)
 #files = glob.glob(npyfilespath)
 for i, f in enumerate(os.listdir(fpath)):
-	
-	print np.load(fpath+f).shape, i 
+	f_handle = fpathnew + f
+	c = np.load(fpath+f)
+	y = c[:, :-3] - np.mean(c[:, :-3], axis=0)
+	y = np.append(y, c[:, 64:],axis=-1)
+	print y.shape
+	np.save(f_handle, y)
 	#np.save
-print np.array(dataArray).shape
+#print np.array(dataArray).shape
+
+
 	
 # dataArray = []
 # with open(fpath, 'wb') as f_handle:
