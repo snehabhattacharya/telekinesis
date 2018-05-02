@@ -1,11 +1,11 @@
 import urllib2
 import os
 
-filepath = "/home/sneha/UMASS/UBICOMP/project/data/S"
+filepath = "/home/snehabhattac/ubicompdata/S"
 path = "https://www.physionet.org/pn4/eegmmidb/S"
-for i in range(1,110):
+for i in range(1,29):
   f = '{0:03}'.format(i)
-  for j in range(1,14):
+  for j in range(1,15):
       g = '{0:02}'.format(j)
       url = path + f +"/S"+f +"R"+g + ".edf"
       print url

@@ -2,12 +2,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import torch.optim as optim
-from dataloader import EEGDataset, my_collate, my_cnn_collate
+from dataloader import EEGDataset, my_collate, my_collate_two
 from torch.utils.data import DataLoader
-
+from autoencoder import Autoencoder
 
 class CNN_net(nn.Module):
     def __init__(self, 
@@ -81,21 +81,29 @@ class CNN_net(nn.Module):
         #x = F.softmax
         return x
 # torch.optim.Adam
-model = CNN_net(in_chans=64, n_classes=3, input_time_length=1, batch_size=1, kernel_size=2)
+model = CNN_net(in_chans=64, n_classes=3, input_time_length=1, batch_size=1, kernel_size=2).cuda()
 optimizer = torch.optim.Adam(model.parameters(),lr=0.01)
 criterion = nn.CrossEntropyLoss()
-fpath = "/home/sneha/UMASS/UBICOMP/project/data/pre_processed/"
+fpath = "/home/snehabhattac/ubicompdata/pre_processed/"
+trng = "/home/snehabhattac/ubicompdata/test/test/"
 dset = EEGDataset(fpath)
-loader = DataLoader(dset,num_workers=2, batch_size=1, collate_fn=my_cnn_collate)
+tset = EEGDataset(trng)
+loader = DataLoader(dset,num_workers=2, batch_size=2, collate_fn=my_collate_two)
+loader_test = DataLoader(tset,num_workers=2, batch_size=2, collate_fn=my_collate_two)
+model_2 = Autoencoder().cuda()
+model_2.load_state_dict(torch.load("vae.pt"))
+model_2.eval()
+print model_2
 # for data, target in loader:
     
-num_epochs = 10
+num_epochs = 100
 # criterion = nn.CrossEntropyLoss()
 # # optimizer = torch.optim.Adam(
 # #     model.parameters(), lr=learning_rate, weight_decay=1e-5)
 for epoch in range(num_epochs):
     for data, target in loader:
-        data = Variable(data)
+        data = Variable(data).cuda().float()
+        data = model_2.forward(data)
         #target = Variable(target)
         output = model(data)
         _, preds = torch.max(output.data,1)
@@ -107,14 +115,27 @@ for epoch in range(num_epochs):
                 new_target[i] = target[i]
         # print new_target.size(), "new_target"
         # print preds.size()
-        loss = criterion(output, Variable(new_target).long())
+        loss = criterion(output, Variable(new_target).cuda().long())
         # ===================backward====================
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+    accuracy = 0
+    for data, target in loader_test:
+        data = Variable(data).cuda().float()
+        data = model_2(data)
+        output = model(data)
+        _, preds = torch.max(output.data,1)
+        target = target[:19680]
+        new_target = torch.zeros(1230)
+        for i in range(0,len(target),16):
+            if not i > 1230:
+                new_target[i] = target[i]
+        accuracy += torch.sum(Variable(new_target) == preds.cpu().float())
         #print loss
     # ===================log========================
     print'epoch [{}/{}], loss:{:.4f}'.format(epoch + 1, num_epochs, loss.data[0])
+    print accuracy
 
 
 
